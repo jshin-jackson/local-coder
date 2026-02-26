@@ -9,6 +9,9 @@ FastAPI serves both:
 CML Application requires the server to listen on:
   - Host: 0.0.0.0
   - Port: CDSW_APP_PORT (environment variable set by CML)
+
+Note: CML runs scripts in a Jupyter/IPython context with an existing asyncio
+event loop. nest_asyncio patches the loop to allow uvicorn to run inside it.
 """
 
 import os
@@ -19,18 +22,19 @@ from pathlib import Path
 ROOT_DIR = Path(os.getcwd())
 sys.path.insert(0, str(ROOT_DIR / "backend"))
 
+import nest_asyncio
+nest_asyncio.apply()
+
 import uvicorn
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000")))
 
-
-if __name__ == "__main__":
-    print(f"Starting Local Coder on {HOST}:{PORT}")
-    uvicorn.run(
-        "main:app",
-        host=HOST,
-        port=PORT,
-        reload=False,
-        app_dir=str(ROOT_DIR / "backend"),
-    )
+print(f"Starting Local Coder on {HOST}:{PORT}")
+uvicorn.run(
+    "main:app",
+    host=HOST,
+    port=PORT,
+    reload=False,
+    app_dir=str(ROOT_DIR / "backend"),
+)
