@@ -14,7 +14,8 @@ import os
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).parent.parent
+# CML Jobs/Sessions do not define __file__; working directory is the project root.
+ROOT_DIR = Path(os.getcwd())
 MODELS_DIR = ROOT_DIR / "models"
 
 MODEL_REPO_ID = os.getenv("MODEL_REPO_ID", "midorin-Linux/gpt-oss-20b-Coding-Distill-GGUF")

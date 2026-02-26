@@ -11,7 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).parent.parent
+# CML Jobs/Sessions do not define __file__; working directory is the project root.
+ROOT_DIR = Path(os.getcwd())
 FRONTEND_DIR = ROOT_DIR / "frontend"
 DIST_DIR = FRONTEND_DIR / "dist"
 

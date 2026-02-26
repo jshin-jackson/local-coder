@@ -15,8 +15,8 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure the backend package is importable
-ROOT_DIR = Path(__file__).parent.parent
+# CML Jobs/Sessions do not define __file__; working directory is the project root.
+ROOT_DIR = Path(os.getcwd())
 sys.path.insert(0, str(ROOT_DIR / "backend"))
 
 import uvicorn
