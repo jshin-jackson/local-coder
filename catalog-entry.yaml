@@ -1,0 +1,41 @@
+name: Custom
+
+entries:
+  - title: Local Coder — AI Source Code Generator
+    label: local-coder
+    short_description: |
+      An AI-powered IDE for source code generation using gpt-oss-20b-Coding-Distill
+      running entirely within Cloudera AI with GPU acceleration.
+    long_description: |
+      Local Coder is a fully self-contained AI code generation web application that
+      runs inside Cloudera AI. It uses the OpenAI gpt-oss-20b-Coding-Distill model
+      (MXFP4 GGUF quantization, 13.8 GB) served via llama-cpp-python with CUDA GPU
+      acceleration, and provides a VSCode-grade Monaco Editor IDE interface built
+      with React + TypeScript.
+
+      Features:
+      - Real-time streaming code generation via Server-Sent Events (SSE)
+      - Support for 13 programming languages (Python, TypeScript, Go, Rust, Java, etc.)
+      - Adjustable generation parameters (max tokens, temperature)
+      - Generation history sidebar for reviewing past outputs
+      - Single CML Application serving both the API and React frontend
+
+      IMPORTANT: Please read the following before proceeding. This AMP downloads
+      the gpt-oss-20b-Coding-Distill-GGUF model (~13.8 GB) from HuggingFace at
+      setup time. By launching this AMP you agree to the model's license terms at
+      https://huggingface.co/midorin-Linux/gpt-oss-20b-Coding-Distill-GGUF.
+      Cloudera is not responsible for third-party model content.
+    image_path: "https://github.com/jshin-jackson/local-coder/blob/main/assets/thumbnail.png?raw=true"
+    tags:
+      - LLM
+      - Code Generation
+      - GenAI
+      - GGUF
+      - llama-cpp
+      - Monaco Editor
+      - React
+      - FastAPI
+      - GPU
+      - gpt-oss
+    git_url: "https://github.com/jshin-jackson/local-coder"
+    is_prototype: true

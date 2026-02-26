@@ -168,3 +168,48 @@ Open your browser at **http://localhost:5173**
 **CORS error in browser**
 - Make sure the backend is running on port `8000`
 - Vite proxies `/api` → `http://localhost:8000` automatically (configured in `vite.config.ts`)
+
+---
+
+## Deploying as a Cloudera AI AMP
+
+This project is packaged as a **Cloudera Accelerator for Machine Learning Projects (AMP)**.  
+On Cloudera AI, all setup steps run automatically — no manual commands needed.
+
+### Automatic Setup Flow
+
+```
+[Session]  0_session-install-deps  →  pip install + npm install
+[Job]      1_job-download-model    →  Download GGUF model from HuggingFace (~13.8 GB)
+[Job]      2_job-build-frontend    →  npm run build (React → dist/)
+[App]      3_app/start.py          →  FastAPI serves API + React UI (single CML Application)
+```
+
+### Adding to a Custom AMP Catalog
+
+1. Go to **Site Administration → AMPs** in Cloudera AI
+2. Click **Add Source**
+3. Select **Git Repository URL** and enter:
+   ```
+   https://github.com/jshin-jackson/local-coder
+   ```
+4. Set the catalog file name to `catalog-entry.yaml`
+5. Click **Add Source**
+
+### Environment Variables (configurable at launch)
+
+| Variable | Default | Description |
+|---|---|---|
+| `MODEL_REPO_ID` | `midorin-Linux/gpt-oss-20b-Coding-Distill-GGUF` | HuggingFace repo ID |
+| `MODEL_FILENAME` | `gpt-oss-20b-Coding-Distill.MXFP4.gguf` | GGUF filename |
+| `N_GPU_LAYERS` | `-1` | GPU layers (-1 = all, 0 = CPU only) |
+| `N_CTX` | `4096` | Context window size |
+| `HF_TOKEN` | *(empty)* | HuggingFace token (for private/gated models) |
+
+### Resource Requirements
+
+| Resource | Recommended |
+|---|---|
+| CPU | 4 vCores |
+| Memory | 32 GB |
+| GPU | 1 × NVIDIA (A10G / V100 or better) |

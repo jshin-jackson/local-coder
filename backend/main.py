@@ -1,11 +1,15 @@
 import asyncio
 import json
 import logging
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
@@ -13,6 +17,10 @@ import model as model_module
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# Resolve frontend dist directory (works for both local dev and CML deployment)
+_BACKEND_DIR = Path(__file__).parent
+_FRONTEND_DIST = (_BACKEND_DIR / ".." / "frontend" / "dist").resolve()
 
 
 @asynccontextmanager
@@ -26,9 +34,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Local Coder API", version="1.0.0", lifespan=lifespan)
 
+# ---------------------------------------------------------------------------
+# CORS — allow localhost (local dev) + any CML Application origin
+# ---------------------------------------------------------------------------
+_EXTRA_ORIGIN = os.getenv("CML_APP_ORIGIN", "")
+_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+]
+if _EXTRA_ORIGIN:
+    _CORS_ORIGINS.append(_EXTRA_ORIGIN)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.cloudera\.com",  # CML Application URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -126,3 +147,32 @@ async def generate(request: GenerateRequest) -> EventSourceResponse:
             logger.info("Client disconnected during generation.")
 
     return EventSourceResponse(event_generator())
+
+
+# ---------------------------------------------------------------------------
+# Static file serving for React frontend (CML Application / production mode)
+# In local dev, Vite's dev server handles this instead.
+# ---------------------------------------------------------------------------
+
+if _FRONTEND_DIST.exists():
+    # Serve /assets/* (JS, CSS, images built by Vite)
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(_FRONTEND_DIST / "assets")),
+        name="static-assets",
+    )
+
+    @app.get("/vite.svg")
+    async def vite_svg() -> FileResponse:
+        return FileResponse(str(_FRONTEND_DIST / "vite.svg"))
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str) -> FileResponse:
+        """Catch-all route: serve React's index.html for client-side routing."""
+        index = _FRONTEND_DIST / "index.html"
+        return FileResponse(str(index))
+else:
+    logger.warning(
+        "frontend/dist/ not found — React UI will not be served. "
+        "Run: cd frontend && npm run build"
+    )

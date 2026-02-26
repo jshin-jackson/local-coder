@@ -1,0 +1,100 @@
+name: Local Coder — AI Source Code Generator
+description: >-
+  A local AI-powered source code generation web application running entirely within
+  Cloudera AI. Uses the gpt-oss-20b-Coding-Distill-GGUF model (MXFP4, 13.8 GB) served
+  via llama-cpp-python, with a FastAPI backend and a React + Monaco Editor IDE frontend.
+  Supports 13 programming languages with real-time SSE streaming and generation history.
+author: jshin-jackson
+specification_version: "1.0"
+prototype_version: "1.0"
+date: "2026-02-26"
+
+runtimes:
+  - editor: Workbench
+    kernel: Python 3.11
+    edition: Nvidia GPU
+  - editor: Workbench
+    kernel: Python 3.11
+    edition: Standard
+
+environment_variables:
+  MODEL_REPO_ID:
+    default: "midorin-Linux/gpt-oss-20b-Coding-Distill-GGUF"
+    description: "HuggingFace repo ID for the GGUF model"
+    required: true
+  MODEL_FILENAME:
+    default: "gpt-oss-20b-Coding-Distill.MXFP4.gguf"
+    description: "GGUF filename to download from the HuggingFace repo"
+    required: true
+  N_GPU_LAYERS:
+    default: "-1"
+    description: "Number of model layers to offload to GPU. Use -1 for all layers (GPU), 0 for CPU only."
+    required: false
+  N_CTX:
+    default: "4096"
+    description: "Context window size in tokens (max 131072, higher values require more memory)"
+    required: false
+  HF_TOKEN:
+    default: ""
+    description: "HuggingFace API token (required only for private/gated models)"
+    required: false
+
+tasks:
+  - type: run_session
+    name: Install Dependencies
+    short_summary: Installing Python and Node.js dependencies.
+    long_summary: >-
+      Installs all Python dependencies (FastAPI, llama-cpp-python with CUDA support,
+      sse-starlette, etc.) and Node.js dependencies for the React frontend.
+      llama-cpp-python is compiled with CUDA GPU acceleration enabled.
+    script: 0_session-install-deps/install.py
+    kernel: python3
+    cpu: 2
+    memory: 8
+
+  - type: create_job
+    name: Download GGUF Model
+    entity_label: download-model
+    short_summary: Creating job to download the GGUF model from HuggingFace.
+    script: 1_job-download-model/download_model.py
+    kernel: python3
+    cpu: 2
+    memory: 4
+
+  - type: run_job
+    entity_label: download-model
+    short_summary: Downloading gpt-oss-20b-Coding-Distill GGUF model (~13.8 GB).
+    long_summary: >-
+      Downloads the MXFP4 quantized GGUF model from HuggingFace into the project's
+      models/ directory. This may take several minutes depending on network speed.
+
+  - type: create_job
+    name: Build React Frontend
+    entity_label: build-frontend
+    short_summary: Creating job to build the React frontend.
+    script: 2_job-build-frontend/build_frontend.py
+    kernel: python3
+    cpu: 2
+    memory: 4
+
+  - type: run_job
+    entity_label: build-frontend
+    short_summary: Building React + Vite frontend into static files.
+    long_summary: >-
+      Runs npm run build in the frontend/ directory to compile the React + TypeScript
+      application into static files served by FastAPI.
+
+  - type: start_application
+    name: Local Coder — Code Generation IDE
+    short_summary: Launching the Local Coder web application.
+    long_summary: >-
+      Starts the FastAPI server which loads the GGUF model and serves both the
+      REST/SSE API and the React IDE frontend as a single CML Application.
+    subdomain: local-coder
+    script: 3_app/start.py
+    kernel: python3
+    cpu: 4
+    memory: 32
+    gpu: 1
+    environment_variables:
+      TASK_TYPE: START_APPLICATION
