@@ -11,7 +11,8 @@ import subprocess
 import sys
 import os
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# CML Sessions do not define __file__; the working directory is always the project root.
+ROOT_DIR = os.getcwd()
 
 
 def run(cmd: list[str], cwd: str = ROOT_DIR) -> None:
