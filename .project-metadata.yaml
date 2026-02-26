@@ -12,9 +12,6 @@ date: "2026-02-26"
 runtimes:
   - editor: Workbench
     kernel: Python 3.11
-    edition: Nvidia GPU
-  - editor: Workbench
-    kernel: Python 3.11
     edition: Standard
 
 environment_variables:
@@ -27,8 +24,8 @@ environment_variables:
     description: "GGUF filename to download from the HuggingFace repo"
     required: true
   N_GPU_LAYERS:
-    default: "-1"
-    description: "Number of model layers to offload to GPU. Use -1 for all layers (GPU), 0 for CPU only."
+    default: "0"
+    description: "Number of model layers to offload to GPU. Use 0 for CPU only, -1 for all layers (GPU)."
     required: false
   N_CTX:
     default: "4096"
@@ -44,9 +41,8 @@ tasks:
     name: Install Dependencies
     short_summary: Installing Python and Node.js dependencies.
     long_summary: >-
-      Installs all Python dependencies (FastAPI, llama-cpp-python with CUDA support,
-      sse-starlette, etc.) and Node.js dependencies for the React frontend.
-      llama-cpp-python is compiled with CUDA GPU acceleration enabled.
+      Installs all Python dependencies (FastAPI, llama-cpp-python, sse-starlette, etc.).
+      Attempts CUDA build first; falls back to CPU build if CUDA Toolkit is unavailable.
     script: 0_session-install-deps/install.py
     kernel: python3
     cpu: 2
@@ -79,6 +75,5 @@ tasks:
     kernel: python3
     cpu: 4
     memory: 32
-    gpu: 1
     environment_variables:
       TASK_TYPE: START_APPLICATION
