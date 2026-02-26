@@ -24,8 +24,10 @@ Event loop strategy:
 
 import asyncio
 import os
+import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 # CML does not define __file__; working directory is always the project root.
@@ -37,6 +39,22 @@ from main import app  # import directly — avoids app_dir parameter
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000")))
+
+# Release port if held by a stale process from a previous deployment.
+# This is necessary because CML may reuse the same OS process/kernel across
+# redeployments, leaving the previous uvicorn thread still bound to the port.
+print(f"Checking port {PORT} for stale processes...")
+result = subprocess.run(
+    f"fuser -k {PORT}/tcp",
+    shell=True,
+    capture_output=True,
+    text=True,
+)
+if result.returncode == 0:
+    print(f"  Released stale process on port {PORT}. Waiting for port to free...")
+    time.sleep(2)
+else:
+    print(f"  Port {PORT} is free.")
 
 print(f"Starting Local Coder on {HOST}:{PORT}")
 print(f"Backend dir: {ROOT_DIR / 'backend'}")
