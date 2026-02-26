@@ -26,16 +26,30 @@ def main() -> None:
     print("Step 0: Installing dependencies")
     print("=" * 60)
 
-    # --- Python: llama-cpp-python with CUDA ---
-    print("\n[1/3] Installing llama-cpp-python with CUDA GPU support...")
-    env = os.environ.copy()
-    env["CMAKE_ARGS"] = "-DGGML_CUDA=on"
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-U", "llama-cpp-python", "--no-cache-dir"],
-        cwd=ROOT_DIR,
-        env=env,
-        check=True,
-    )
+    # --- Python: llama-cpp-python (CUDA if available, otherwise CPU) ---
+    print("\n[1/3] Installing llama-cpp-python...")
+
+    def _install_llama_cpp(cuda: bool) -> bool:
+        env = os.environ.copy()
+        if cuda:
+            env["CMAKE_ARGS"] = "-DGGML_CUDA=on"
+            label = "CUDA GPU"
+        else:
+            env.pop("CMAKE_ARGS", None)
+            label = "CPU"
+        print(f"    Attempting build with {label} support...")
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-U", "llama-cpp-python", "--no-cache-dir"],
+            cwd=ROOT_DIR,
+            env=env,
+        )
+        return result.returncode == 0
+
+    if not _install_llama_cpp(cuda=True):
+        print("    CUDA build failed (CUDA Toolkit not found) — falling back to CPU build.")
+        print("    NOTE: The Application step requires a GPU instance for acceptable performance.")
+        if not _install_llama_cpp(cuda=False):
+            raise RuntimeError("llama-cpp-python installation failed for both CUDA and CPU builds.")
 
     # --- Python: remaining backend dependencies ---
     print("\n[2/3] Installing Python backend dependencies...")
