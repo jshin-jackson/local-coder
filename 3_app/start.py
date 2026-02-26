@@ -10,36 +10,59 @@ CML Application requires the server to listen on:
   - Host: 0.0.0.0
   - Port: CDSW_APP_PORT (environment variable set by CML)
 
-Note: CML runs scripts inside a Jupyter/IPython context that already has
-a running uvloop event loop. uvicorn.run() and nest_asyncio both fail in
-this environment. The only reliable solution is to launch uvicorn as a
-completely separate subprocess via os.execv(), which replaces the current
-process entirely and starts a fresh event loop.
+Event loop strategy:
+  CML executes scripts inside a Jupyter/IPython context that already runs
+  a uvloop event loop. Three approaches fail in this environment:
+    1. uvicorn.run()      → "Runner.run() cannot be called from running loop"
+    2. nest_asyncio       → uvloop does not support nest_asyncio
+    3. os.execv()         → CML port detection fails ("Duplicate port 0")
+
+  Solution: run uvicorn.Server.serve() in a *new thread* with a *new asyncio
+  event loop* (not uvloop). The new thread has no pre-existing loop, so
+  uvicorn starts cleanly and CML detects the port binding correctly.
 """
 
+import asyncio
 import os
 import sys
+import threading
 from pathlib import Path
 
-# CML Jobs/Sessions do not define __file__; working directory is the project root.
+# CML does not define __file__; working directory is always the project root.
 ROOT_DIR = Path(os.getcwd())
+sys.path.insert(0, str(ROOT_DIR / "backend"))
+
+import uvicorn
 
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000"))
+PORT = int(os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000")))
 
 print(f"Starting Local Coder on {HOST}:{PORT}")
 print(f"Backend dir: {ROOT_DIR / 'backend'}")
 
-# Replace the current process entirely with uvicorn.
-# os.execv() avoids all event loop conflicts because there is no parent loop.
-os.chdir(str(ROOT_DIR / "backend"))
-os.execv(
-    sys.executable,
-    [
-        sys.executable, "-m", "uvicorn",
+
+def _run_server() -> None:
+    """Run uvicorn in a dedicated thread with a fresh asyncio event loop."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    config = uvicorn.Config(
         "main:app",
-        "--host", HOST,
-        "--port", str(PORT),
-        "--no-access-log",
-    ],
-)
+        host=HOST,
+        port=PORT,
+        loop="asyncio",          # use standard asyncio, not uvloop
+        app_dir=str(ROOT_DIR / "backend"),
+        reload=False,
+        log_level="info",
+    )
+    server = uvicorn.Server(config)
+
+    try:
+        loop.run_until_complete(server.serve())
+    finally:
+        loop.close()
+
+
+thread = threading.Thread(target=_run_server, daemon=False)
+thread.start()
+thread.join()
