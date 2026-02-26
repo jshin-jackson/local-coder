@@ -10,8 +10,11 @@ CML Application requires the server to listen on:
   - Host: 0.0.0.0
   - Port: CDSW_APP_PORT (environment variable set by CML)
 
-Note: CML runs scripts in a Jupyter/IPython context with an existing asyncio
-event loop. nest_asyncio patches the loop to allow uvicorn to run inside it.
+Note: CML runs scripts inside a Jupyter/IPython context that already has
+a running uvloop event loop. uvicorn.run() and nest_asyncio both fail in
+this environment. The only reliable solution is to launch uvicorn as a
+completely separate subprocess via os.execv(), which replaces the current
+process entirely and starts a fresh event loop.
 """
 
 import os
@@ -20,21 +23,23 @@ from pathlib import Path
 
 # CML Jobs/Sessions do not define __file__; working directory is the project root.
 ROOT_DIR = Path(os.getcwd())
-sys.path.insert(0, str(ROOT_DIR / "backend"))
-
-import nest_asyncio
-nest_asyncio.apply()
-
-import uvicorn
 
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000")))
+PORT = os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000"))
 
 print(f"Starting Local Coder on {HOST}:{PORT}")
-uvicorn.run(
-    "main:app",
-    host=HOST,
-    port=PORT,
-    reload=False,
-    app_dir=str(ROOT_DIR / "backend"),
+print(f"Backend dir: {ROOT_DIR / 'backend'}")
+
+# Replace the current process entirely with uvicorn.
+# os.execv() avoids all event loop conflicts because there is no parent loop.
+os.chdir(str(ROOT_DIR / "backend"))
+os.execv(
+    sys.executable,
+    [
+        sys.executable, "-m", "uvicorn",
+        "main:app",
+        "--host", HOST,
+        "--port", str(PORT),
+        "--no-access-log",
+    ],
 )
