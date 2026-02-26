@@ -12,11 +12,6 @@ CMAKE_ARGS="-DGGML_CUDA=on" pip install -U llama-cpp-python --no-cache-dir
 # Install remaining Python dependencies
 pip install -r backend/requirements.txt
 
-echo "=== Installing Node.js dependencies and building frontend ==="
-
-cd frontend
-npm install
-npm run build
-cd ..
-
 echo "=== Build complete ==="
+echo "NOTE: React frontend (frontend/dist/) is pre-built and committed to git."
+echo "      Run 'cd frontend && npm run build' locally to update the UI build."

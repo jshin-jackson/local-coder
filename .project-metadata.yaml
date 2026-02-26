@@ -68,22 +68,6 @@ tasks:
       Downloads the MXFP4 quantized GGUF model from HuggingFace into the project's
       models/ directory. This may take several minutes depending on network speed.
 
-  - type: create_job
-    name: Build React Frontend
-    entity_label: build-frontend
-    short_summary: Creating job to build the React frontend.
-    script: 2_job-build-frontend/build_frontend.py
-    kernel: python3
-    cpu: 2
-    memory: 4
-
-  - type: run_job
-    entity_label: build-frontend
-    short_summary: Building React + Vite frontend into static files.
-    long_summary: >-
-      Runs npm run build in the frontend/ directory to compile the React + TypeScript
-      application into static files served by FastAPI.
-
   - type: start_application
     name: Local Coder — Code Generation IDE
     short_summary: Launching the Local Coder web application.

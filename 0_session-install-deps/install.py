@@ -55,11 +55,9 @@ def main() -> None:
     print("\n[2/3] Installing Python backend dependencies...")
     run([sys.executable, "-m", "pip", "install", "-r", "backend/requirements.txt"])
 
-    # --- Node.js: frontend dependencies ---
-    print("\n[3/3] Installing Node.js frontend dependencies...")
-    run(["npm", "install"], cwd=os.path.join(ROOT_DIR, "frontend"))
-
     print("\n✓ All dependencies installed successfully.")
+    print("   NOTE: React frontend is pre-built (frontend/dist/ committed to git).")
+    print("         Node.js is not required in the Cloudera AI runtime.")
 
 
 if __name__ == "__main__":
