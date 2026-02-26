@@ -23,6 +23,10 @@ environment_variables:
     default: "gpt-oss-20b-Coding-Distill.MXFP4.gguf"
     description: "GGUF filename to download from the HuggingFace repo"
     required: true
+  MODEL_PATH:
+    default: "/home/cdsw/models/gpt-oss-20b-Coding-Distill.MXFP4.gguf"
+    description: "Absolute path to the GGUF model file on the runtime filesystem"
+    required: false
   N_GPU_LAYERS:
     default: "0"
     description: "Number of model layers to offload to GPU. Use 0 for CPU only, -1 for all layers (GPU)."

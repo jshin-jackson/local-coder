@@ -4,7 +4,12 @@ from pathlib import Path
 from typing import Iterator, Optional
 from dotenv import load_dotenv
 
-load_dotenv()
+# Explicitly load .env from backend/ regardless of cwd
+try:
+    _env_file = Path(__file__).parent / ".env"
+except NameError:
+    _env_file = Path.cwd() / "backend" / ".env"
+load_dotenv(dotenv_path=_env_file, override=False)
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +19,21 @@ _load_error: Optional[str] = None
 
 
 def _resolve_model_path(path: str) -> str:
-    """Resolve model path relative to the backend directory."""
+    """Resolve model path — supports absolute paths and paths relative to project root."""
     p = Path(path)
     if p.is_absolute():
         return str(p)
-    # Resolve relative to backend directory
-    base = Path(__file__).parent
-    resolved = (base / p).resolve()
+
+    # In CML, __file__ is not defined; use cwd (always project root) as base.
+    try:
+        base = Path(__file__).parent          # local: backend/
+        resolved = (base / p).resolve()
+    except NameError:
+        base = Path.cwd()                     # CML: project root
+        # Strip leading "../" since cwd is already the project root
+        clean = path.lstrip("./").lstrip("../")
+        resolved = (base / clean).resolve()
+
     return str(resolved)
 
 
@@ -28,7 +41,8 @@ def load_model() -> None:
     """Load the GGUF model using llama-cpp-python. Called once at startup."""
     global _llm, _model_path, _load_error
 
-    raw_path = os.getenv("MODEL_PATH", "../models/model.gguf")
+    model_filename = os.getenv("MODEL_FILENAME", "gpt-oss-20b-Coding-Distill.MXFP4.gguf")
+    raw_path = os.getenv("MODEL_PATH", f"../models/{model_filename}")
     _model_path = _resolve_model_path(raw_path)
 
     if not Path(_model_path).exists():
