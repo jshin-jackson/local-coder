@@ -33,6 +33,7 @@ ROOT_DIR = Path(os.getcwd())
 sys.path.insert(0, str(ROOT_DIR / "backend"))
 
 import uvicorn
+from main import app  # import directly — avoids app_dir parameter
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("CDSW_APP_PORT", os.getenv("PORT", "8000")))
@@ -47,11 +48,10 @@ def _run_server() -> None:
     asyncio.set_event_loop(loop)
 
     config = uvicorn.Config(
-        "main:app",
+        app,                     # pass app object directly, not as string
         host=HOST,
         port=PORT,
         loop="asyncio",          # use standard asyncio, not uvloop
-        app_dir=str(ROOT_DIR / "backend"),
         reload=False,
         log_level="info",
     )
